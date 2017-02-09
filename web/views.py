@@ -4,9 +4,6 @@ from django.http import HttpResponse
 from django.template import RequestContext
 from models import Diary, Month, Money
 from forms import DiaryForm, MoneyForm, LoginForm
-from forms import DiaryForm, MoneyForm
-from models import Diary, Month
-from forms import DiaryForm
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.utils.timezone import localtime
@@ -16,20 +13,46 @@ from docx.shared import Inches
 import xlsxwriter
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-  
-# 瀏覽日誌   
+
+# 瀏覽日誌
+@login_required
+def diary(request,month):
+        time_year = int(month)/100
+        time_month = int(month)%100
+        diaries = Diary.objects.filter(time__year=time_year, time__month=time_month).order_by("-id")
+        return render_to_response('diary.html', {'diaries': diaries, 'month':month}, context_instance=RequestContext(request))
+      
+@login_required
+def diary_add(request):
+        if request.method == 'POST':
+                form = DiaryForm(request.POST)
+                if form.is_valid():
+                        form.save()
+                        year = localtime(timezone.now()).year
+                        month =  localtime(timezone.now()).month
+                        try:
+                                themonth = Month.objects.get(date=year*100+month)
+                        except ObjectDoesNotExist:
+                                themonth = Month(date=year*100+month)
+                                themonth.save()
+                        return redirect("/diary/"+str(themonth.date))
+        else:
+                form = DiaryForm()
+        return render_to_response('form.html',{'form': form}, context_instance=RequestContext(request))
+      
 @login_required
 def home(request):
         months = Month.objects.all().order_by("-id")
         return render_to_response('home.html', {'months': months}, context_instance=RequestContext(request))
 
+@login_required
 def diary_word(request, month):
         document = Document()
-        docx_title="diary-"+str(timezone.localtime(timezone.now()).date())+".docx"
+        docx_title="Diary-"+str(timezone.localtime(timezone.now()).date())+".docx"
 
         time_year = int(month)/100
         time_month = int(month)%100
-        diaries = diary.objects.filter(time__year=time_year, time__month=time_month).order_by("-id")
+        diaries = Diary.objects.filter(time__year=time_year, time__month=time_month).order_by("-id")
         paragraph = document.add_paragraph(u'我的日誌：'+month)
         table = document.add_table(rows=1, cols=2)
         table.style = 'TableGrid'
@@ -54,15 +77,15 @@ def diary_word(request, month):
         response['Content-Disposition'] = 'attachment; filename=' + docx_title
         response['Content-Length'] = length
 
-        return response 
-      
+        return response
+
 @login_required
 def money(request, month):
         time_year = int(month)/100
         time_month = int(month)%100
         moneys = Money.objects.filter(time__year=time_year, time__month=time_month).order_by("-id")
         return render_to_response('money.html', {'moneys': moneys, 'month':month}, context_instance=RequestContext(request))
-      
+
 @login_required
 def money_add(request):
         if request.method == 'POST':
@@ -80,7 +103,8 @@ def money_add(request):
         else:
                 form = MoneyForm()
         return render_to_response('form.html',{'form': form}, context_instance=RequestContext(request))
-      
+
+@login_required
 def money_excel(request, month):
         time_year = int(month)/100
         time_month = int(month)%100
@@ -105,7 +129,7 @@ def money_excel(request, month):
         response['Content-Disposition'] = 'attachment; filename=Money-'+str(localtime(timezone.now()).date())+'.xlsx'
         xlsx_data = output.getvalue()
         response.write(xlsx_data)
-        return response  
+        return response
       
 # 使用者登入功能
 def user_login(request):
@@ -126,4 +150,3 @@ def user_login(request):
         else:
                 form = LoginForm()
         return render_to_response('login.html', {'message': message, 'form': form}, context_instance=RequestContext(request))
-      

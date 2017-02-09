@@ -20,8 +20,8 @@ from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-#    url(r'^diary/add/$', views.diary_add),
-#    url(r'^diary/(?P<month>\d+)/$', views.diary),
+    url(r'^diary/(?P<month>\d+)/$', views.diary),
+    url(r'^diary/add/$', views.diary_add),
     url(r'^diary/word/(?P<month>\d+)/$', views.diary_word),
     url(r'^home/$', views.home),
     url(r'^money/(?P<month>\d+)$', views.money),
